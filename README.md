@@ -24,3 +24,14 @@ terraform should know that its an update not a create request so it maintains al
 `lock file` this is used to handle the concurrency of the commands, if 2 users want to execute the terraform apply at the same instance, only 1 user can achieve the lock on the file and the other user has to wait until that user is done 
 
 `Terraform provisioners`
+
+`To create a EC2 instance which can host a application`
+
+1. Create a VPC & Add CIDR for the VPC
+2. Create a Key value pair (Add the public key to the EC2 you are planning to create and SSH into it using the private key) (command: ssh-keygen -t rsa)
+3. Create a Subnet in the VPC & Add CIDR for the Subnet 
+4. Create a Internet gateway for the VPC.
+5. Create a route table for the VPC and add the internet gateway as the destination for the route table
+6. Associate the Route table with the subnet to make it public
+7. Create the security group with Inbound, outbound requests configuration (In Terrafrom Inbound ~= ingress, outbound ~= egress)
+8. Create EC2 instance in the Subnet  
