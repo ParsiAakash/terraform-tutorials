@@ -1,0 +1,1 @@
+aws_location = "ap-south-1"
