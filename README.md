@@ -23,8 +23,6 @@ terraform should know that its an update not a create request so it maintains al
 
 `lock file` this is used to handle the concurrency of the commands, if 2 users want to execute the terraform apply at the same instance, only 1 user can achieve the lock on the file and the other user has to wait until that user is done 
 
-`Terraform provisioners`
-
 `To create a EC2 instance which can host a application`
 
 1. Create a VPC & Add CIDR for the VPC
@@ -34,4 +32,17 @@ terraform should know that its an update not a create request so it maintains al
 5. Create a route table for the VPC and add the internet gateway as the destination for the route table
 6. Associate the Route table with the subnet to make it public
 7. Create the security group with Inbound, outbound requests configuration (In Terrafrom Inbound ~= ingress, outbound ~= egress)
-8. Create EC2 instance in the Subnet  
+8. Create EC2 instance in the Subnet
+
+`Terraform provisioners`
+    `File Provisioners` : this is to copy or move any files from our local to the remote system
+    `local exec provisioners`: this is to execute something or write some logs or save logs into a file .. etc , using this you can execute the commands in your machine
+    `remote exec provisioners` this is to execute commands in your remote machine 
+
+`Terraform Workspaces`
+    Workspaces are used to maintain or reuse the existing IAC for different environments in our organization
+    `Example`: Lets say you want a Ec2 machine to be created for Dev, UAT, Prod and the configuration is different, so you would think that I would provide the module to create the EC2 and we can parameterize it but lets say if dev needs `t2.micro` and UAT needs `t2.medium` when you execute dev, the state file records it and when you try to execute again, terraform thinks that you are trying to modify the existing, so it will update the existing, this is caused because there is only 1 state file, to overcome this we use `workspaces`
+    so now we can create multiple workspaces using the command `terraform workspace new <env>` example `terraform workspace new dev`
+    to switch to any workspace we can use the command `terraform workspace select <env>` example ``terraform workspace select dev`
+    to know which workspace you are in use the command `terraform workspace show`
+    
