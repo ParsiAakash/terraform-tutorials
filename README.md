@@ -46,3 +46,62 @@ terraform should know that its an update not a create request so it maintains al
     to switch to any workspace we can use the command `terraform workspace select <env>` example ``terraform workspace select dev`
     to know which workspace you are in use the command `terraform workspace show`
     
+`Hashicorp Vault`
+    This is a vault where we can store our sensitive information like db passwords, instance secrets .. etc 
+    We shall create an EC2 instance and then integrate our hashicorp vault in it 
+
+1. Create an EC2 instance with key value pair of type RSA
+2. Login to EC2 machine with the command `ssh -i <path to pem file> ubuntu@<public_ip>`
+3. Vault package is not by default available in Ubuntu machine so we install gpg `sudo apt install gpg`
+4. Download the signing key to a new keyring `wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg`
+5. Verifying the fingerprint `gpg --no-default-keyring --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg --fingerprint`
+6. Add the hashicorp repo to your ubuntu machine `echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list`
+7. update the package manager `sudo apt update`
+8. Install the vault now `sudo apt install vault`
+9. check if vault is successfully installed `vault`
+10. start the vault development server `vault server -dev -dev-listen-address="0.0.0.0:8200"`
+11. once you start the vault server in your machine, in the console you can see the web address on which the vault is running with port, you have to enable the security group to allow this port for inbound (8200 by default)
+12. you can also see a `root token` in the console, once you open the `<ip_address>:<port>` you can select token from the drop down and enter this token into the token field, which will grant you the root access to the vault
+
+now you can see `secret engines`, `access`, `policies`
+
+
+`secret engines`: This is a store where you can save different types of secrets like key-value pair or kubernetes secret config .. etc
+Lets create a KV (key value pair):
+1. select the path, this is a path on which you wanted the secret info to be stored inside the machine, the best part is whatever you are storing outside hashicorp vault, its only encryptedly stored, no one can see the decrypted one, only the hashicorp has the decrypted / readable format stored
+
+2. `policies` this is to create a policy for the roles to assign it to role, this is similar to IAM policy of AWS, you cannot create roles thru GUI, you only can create using CLI 
+`export VAULT_ADDR='http://0.0.0.0:8200'`
+`vault policy write terraform - <<EOF 
+path "*" {
+  capabilities = ["list", "read"]
+}
+
+path "secrets/data/*" {
+  capabilities = ["create", "read", "update", "delete", "list"]
+}
+
+path "kv/data/*" {
+  capabilities = ["create", "read", "update", "delete", "list"]
+}
+
+
+path "secret/data/*" {
+  capabilities = ["create", "read", "update", "delete", "list"]
+}
+
+path "auth/token/create" {
+capabilities = ["create", "read", "update", "list"]
+}
+EOF`
+
+3. `access` this is to create a role to which we can attach a policy, this is similar to IAM role of AWS, you cannot create roles thru GUI, you only can create using CLI 
+`export VAULT_ADDR='http://0.0.0.0:8200'`
+`vault write auth/approle/role/terraform     secret_id_ttl=10m     token_num_uses=10     token_ttl=20m     token_max_ttl=30m     secret_id_num_uses=40     token_policies=terraform`
+
+4. you will have to get the role-id of the role created for the policy terraform : `vault read auth/approle/role/terraform/role-id`
+5. you will have to get the secret-id of the role created: `vault write -f  auth/approle/role/terraform/secret-id`
+
+now the hashicorp vault is created and we have got the role-id and secret-id with us, now we shall integrate our vault with the terraform
+
+we use `data` as the key word if we wanted to read the data from the source, just like we use the keyword `resource` when we wanted to create anything in the machine
